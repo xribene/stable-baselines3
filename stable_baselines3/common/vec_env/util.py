@@ -10,7 +10,7 @@ from gymnasium import spaces
 
 from stable_baselines3.common.preprocessing import check_for_nested_spaces
 from stable_baselines3.common.vec_env.base_vec_env import VecEnvObs
-
+from copy import deepcopy
 
 def copy_obs_dict(obs: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
     """
@@ -20,7 +20,14 @@ def copy_obs_dict(obs: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
     :return: a dict of copied numpy arrays.
     """
     assert isinstance(obs, OrderedDict), f"unexpected type for observations '{type(obs)}'"
-    return OrderedDict([(k, np.copy(v)) for k, v in obs.items()])
+    # return OrderedDict([(k, np.copy(v)) for k, v in obs.items()])
+    copied_obs = OrderedDict()
+    for k, v in obs.items():
+        if isinstance(v, np.ndarray):
+            copied_obs[k] = np.copy(v)
+        else:  # Assume v is a list or another type that requires deep-copying
+            copied_obs[k] = deepcopy(v)
+    return copied_obs
 
 
 def dict_to_obs(obs_space: spaces.Space, obs_dict: Dict[Any, np.ndarray]) -> VecEnvObs:
@@ -70,8 +77,14 @@ def obs_space_info(obs_space: spaces.Space) -> Tuple[List[str], Dict[Any, Tuple[
     keys = []
     shapes = {}
     dtypes = {}
-    for key, box in subspaces.items():
+    # Modifications necessary to deal with Graph spaces
+    for key, space in subspaces.items():
         keys.append(key)
-        shapes[key] = box.shape
-        dtypes[key] = box.dtype
+        # Check if the space is a Graph space or does not have a defined shape
+        if isinstance(space, spaces.Graph) or getattr(space, 'shape', None) is None:
+            shapes[key] = None
+            dtypes[key] = None
+        else:
+            shapes[key] = space.shape
+            dtypes[key] = space.dtype
     return keys, shapes, dtypes

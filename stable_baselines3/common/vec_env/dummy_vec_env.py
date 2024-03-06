@@ -41,9 +41,16 @@ class DummyVecEnv(VecEnv):
         env = self.envs[0]
         super().__init__(len(env_fns), env.observation_space, env.action_space)
         obs_space = env.observation_space
-        self.keys, shapes, dtypes = obs_space_info(obs_space)
+        self.keys, self.shapes, dtypes = obs_space_info(obs_space)
 
-        self.buf_obs = OrderedDict([(k, np.zeros((self.num_envs, *tuple(shapes[k])), dtype=dtypes[k])) for k in self.keys])
+        # Modifications in buf_obs to deal with Graph spaces
+        self.buf_obs = OrderedDict()
+        for k in self.keys:
+            if self.shapes[k] is not None:  # If shape is defined, use a numpy array
+                self.buf_obs[k] = np.zeros((self.num_envs, *self.shapes[k]), dtype=dtypes[k])
+            else:  # If shape is None, indicating a Graph space, use a list
+                self.buf_obs[k] = [None] * self.num_envs
+        # self.buf_obs = OrderedDict([(k, np.zeros((self.num_envs, *tuple(shapes[k])), dtype=dtypes[k])) for k in self.keys])
         self.buf_dones = np.zeros((self.num_envs,), dtype=bool)
         self.buf_rews = np.zeros((self.num_envs,), dtype=np.float32)
         self.buf_infos: List[Dict[str, Any]] = [{} for _ in range(self.num_envs)]
@@ -107,7 +114,16 @@ class DummyVecEnv(VecEnv):
             if key is None:
                 self.buf_obs[key][env_idx] = obs
             else:
-                self.buf_obs[key][env_idx] = obs[key]  # type: ignore[call-overload]
+                # self.buf_obs[key][env_idx] = obs[key]  # type: ignore[call-overload]
+                if self.shapes[key] is None:  # This assumes you have shapes defined similar to previous discussions
+                    # For dynamic structures, append or set directly to a list, as appropriate
+                    if isinstance(self.buf_obs[key][env_idx], list):
+                        self.buf_obs[key][env_idx].append(obs[key])
+                    else:
+                        self.buf_obs[key][env_idx] = [obs[key]]
+                else:
+                    # For fixed-shape components, store the observation as before
+                    self.buf_obs[key][env_idx] = obs[key]
 
     def _obs_from_buf(self) -> VecEnvObs:
         return dict_to_obs(self.observation_space, copy_obs_dict(self.buf_obs))
