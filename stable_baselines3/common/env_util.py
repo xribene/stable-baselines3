@@ -7,6 +7,7 @@ from stable_baselines3.common.atari_wrappers import AtariWrapper
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecEnv
 from stable_baselines3.common.vec_env.patch_gym import _patch_env
+from pdb import set_trace as bp
 
 
 def unwrap_wrapper(env: gym.Env, wrapper_class: Type[gym.Wrapper]) -> Optional[gym.Wrapper]:
@@ -116,7 +117,7 @@ def make_vec_env(
             return env
 
         return _init
-
+    # bp()
     # No custom VecEnv is passed
     if vec_env_cls is None:
         # Default: use a DummyVecEnv

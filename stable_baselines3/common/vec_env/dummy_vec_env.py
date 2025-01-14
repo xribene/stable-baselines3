@@ -116,11 +116,12 @@ class DummyVecEnv(VecEnv):
             else:
                 # self.buf_obs[key][env_idx] = obs[key]  # type: ignore[call-overload]
                 if self.shapes[key] is None:  # This assumes you have shapes defined similar to previous discussions
-                    # For dynamic structures, append or set directly to a list, as appropriate
-                    if isinstance(self.buf_obs[key][env_idx], list):
-                        self.buf_obs[key][env_idx].append(obs[key])
-                    else:
-                        self.buf_obs[key][env_idx] = [obs[key]]
+                    # # For dynamic structures, append or set directly to a list, as appropriate
+                    # if isinstance(self.buf_obs[key][env_idx], list):
+                    #     self.buf_obs[key][env_idx].append(obs[key])
+                    # else:
+                    #     self.buf_obs[key][env_idx] = [obs[key]]
+                    self.buf_obs[key][env_idx] = obs[key]
                 else:
                     # For fixed-shape components, store the observation as before
                     self.buf_obs[key][env_idx] = obs[key]
