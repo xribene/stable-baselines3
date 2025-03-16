@@ -80,7 +80,18 @@ class Monitor(gym.Wrapper[ObsType, ActType, ObsType, ActType]):
             if value is None:
                 raise ValueError(f"Expected you to pass keyword argument {key} into reset")
             self.current_reset_info[key] = value
-        return self.env.reset(**kwargs)
+        # The reset function should not throw an error
+        # However due to some very problematic scores that escaped my pre-processing filtering
+        # I need to catch the error, and re-run the reset function
+        # since every time I rerun the reset function, a new score is loaded
+        while True:
+            try:
+                return self.env.reset(**kwargs) #, self.current_reset_info
+            except Exception as e:
+                # print(e)
+                # print("Error in reset, trying again")
+                continue
+        # return self.env.reset(**kwargs)
 
     def step(self, action: ActType) -> Tuple[ObsType, SupportsFloat, bool, bool, Dict[str, Any]]:
         """
